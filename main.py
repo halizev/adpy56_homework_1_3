@@ -7,7 +7,6 @@ import pymorphy2
 from tqdm import tqdm
 
 DESIRED_HUBS = ['дизайн', 'фото', 'web', 'python']
-STOPWORDS = stopwords.words('russian')
 
 
 def get_habr_links(initial_link):
@@ -20,11 +19,11 @@ def get_habr_links(initial_link):
         post_links.append(post_link)
     return post_links
 
+
 def check_habr_links(post_links):
     for post_link in tqdm(post_links):
         ret = requests.get(f'https://habr.com{post_link}')
         soup = BeautifulSoup(ret.text, 'html.parser')
-
         post_hubs = soup.find_all(class_='tm-article-snippet__hubs-item')
         post_text = soup.find(id='post-content-body').get_text(' ')
         if (check_post_hubs(post_hubs) or check_post_text(post_text)) == 1:
@@ -41,9 +40,17 @@ def check_post_hubs(post_hubs):
             return 1
 
 
+STOPWORDS = stopwords.words('russian')
+
+
 def check_post_text(post_text):
+    # Токенизация русскоязычным словарем
     tokens_list = nltk.word_tokenize(post_text.lower(), 'russian')
+
+    # Очистка от стоп-слов и знаков пунктуации
     tokens_list_clear = [token for token in tokens_list if token not in STOPWORDS and token not in punctuation]
+
+    # Лемматизация
     morph = pymorphy2.MorphAnalyzer()
     lemms_list = [morph.parse(word)[0].normal_form for word in tokens_list_clear]
     if any([desired in lemms_list for desired in DESIRED_HUBS]):
